@@ -6,10 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -18,15 +16,13 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
+import com.example.lab_week_09.ui.theme.*
 
-//Declare a data class called Student
 data class Student(var name: String)
 
 class MainActivity : ComponentActivity() {
@@ -47,18 +43,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun Home() {
-    //We use mutableStateListOf to make the list mutable
-    val listData = remember {
-        mutableStateListOf(
-            Student("Tanu"),
-            Student("Tina"),
-            Student("Tono")
-        )
-    }
-    //Here, we create a mutable state of Student
+    val listData = remember { mutableStateListOf(Student("Tanu"), Student("Tina"), Student("Tono")) }
     var inputField = remember { mutableStateOf(Student("")) }
 
-    //We call the HomeContent composable
     HomeContent(
         listData,
         inputField.value,
@@ -72,7 +59,6 @@ fun Home() {
     )
 }
 
-//HomeContent as modul defines
 @Composable
 fun HomeContent(
     listData: SnapshotStateList<Student>,
@@ -86,21 +72,16 @@ fun HomeContent(
                 modifier = Modifier.padding(16.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = stringResource(id = R.string.enter_item))
+                OnBackgroundTitleText(text = stringResource(id = R.string.enter_item))
                 TextField(
                     value = inputField.name,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text
                     ),
-                    onValueChange = {
-                        onInputValueChange(it)
-                    }
+                    onValueChange = { onInputValueChange(it) }
                 )
-                Button(onClick = {
-                    //Here, we call the onButtonClick lambda function
+                PrimaryTextButton(text = stringResource(id = R.string.button_click)) {
                     onButtonClick()
-                }) {
-                    Text(text = stringResource(id = R.string.button_click))
                 }
             }
         }
@@ -109,7 +90,7 @@ fun HomeContent(
                 modifier = Modifier.padding(vertical = 4.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = item.name)
+                OnBackgroundItemText(text = item.name)
             }
         }
     }
@@ -117,9 +98,8 @@ fun HomeContent(
 
 @Preview(showBackground = true)
 @Composable
-fun PreviewHome2() {
-    // preview sample data as modul suggests
-    val sample = listOf(Student("Tanu"), Student("Tina"))
-    // can't call Home() (stateful) in preview; show HomeContent sample instead
-    // Note: For preview we can't pass SnapshotStateList easily; this is for illustration.
+fun PreviewHome3() {
+    LAB_WEEK_09Theme {
+        // For preview, we can't easily supply SnapshotStateList; this preview is illustrative.
+    }
 }
