@@ -12,94 +12,114 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
 
-//Previously we extend AppCompatActivity,
-//now we extend ComponentActivity
+//Declare a data class called Student
+data class Student(var name: String)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //Here, we use setContent instead of setContentView
         setContent {
-            //Here, we wrap our content with the theme
             LAB_WEEK_09Theme {
-                // A surface container using the 'background' color from the theme
                 Surface(
-                    //We use Modifier.fillMaxSize() to make the surface fill the whole screen
                     modifier = Modifier.fillMaxSize(),
-                    //We use MaterialTheme.colorScheme.background to get the background color
-                    //and set it as the color of the surface
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    //Here, we call the Home composable
-                    val list = listOf("Tanu", "Tina", "Tono")
-                    Home(list)
+                    Home()
                 }
             }
         }
     }
 }
 
-//Here, instead of defining it in an XML file,
-//we create a composable function called Home
-
 @Composable
-fun Home(
-    //Here, we define a parameter called items
-    items: List<String>,
+fun Home() {
+    //We use mutableStateListOf to make the list mutable
+    val listData = remember {
+        mutableStateListOf(
+            Student("Tanu"),
+            Student("Tina"),
+            Student("Tono")
+        )
+    }
+    //Here, we create a mutable state of Student
+    var inputField = remember { mutableStateOf(Student("")) }
+
+    //We call the HomeContent composable
+    HomeContent(
+        listData,
+        inputField.value,
+        { input -> inputField.value = inputField.value.copy(input) },
+        {
+            if (inputField.value.name.isNotBlank()) {
+                listData.add(inputField.value)
+                inputField.value = Student("")
+            }
+        }
+    )
+}
+
+//HomeContent as modul defines
+@Composable
+fun HomeContent(
+    listData: SnapshotStateList<Student>,
+    inputField: Student,
+    onInputValueChange: (String) -> Unit,
+    onButtonClick: () -> Unit
 ) {
-    //Here, we use LazyColumn to lazily display a list of items
     LazyColumn {
-        //Here, we use item to display an item inside the LazyColumn
         item {
             Column(
-                //Modifier.padding(16.dp) is used to add padding to the Column
                 modifier = Modifier.padding(16.dp).fillMaxSize(),
-                //Alignment.CenterHorizontally is used to align the Column horizontally
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = stringResource(id = R.string.enter_item))
-                //Here, we use TextField to display a text input field
                 TextField(
-                    //Set the value of the input field
-                    value = "",
-                    //Set the keyboard type of the input field
+                    value = inputField.name,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
+                        keyboardType = KeyboardType.Text
                     ),
-                    //Set what happens when the value of the input field changes
-                    onValueChange = { }
+                    onValueChange = {
+                        onInputValueChange(it)
+                    }
                 )
-                //Here, we use Button to display a button
-                //the onClick parameter is used to set what happens when the button is clicked
-                Button(onClick = { }) {
-                    //Set the text of the button
+                Button(onClick = {
+                    //Here, we call the onButtonClick lambda function
+                    onButtonClick()
+                }) {
                     Text(text = stringResource(id = R.string.button_click))
                 }
             }
         }
-        //Here, we use items to display a list of items inside the LazyColumn
-        items(items) { item ->
+        items(listData) { item ->
             Column(
                 modifier = Modifier.padding(vertical = 4.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = item)
+                Text(text = item.name)
             }
         }
     }
 }
 
-//Preview as in modul example
 @Preview(showBackground = true)
 @Composable
-fun PreviewHome() {
-    Home(listOf("Tanu", "Tina", "Tono"))
+fun PreviewHome2() {
+    // preview sample data as modul suggests
+    val sample = listOf(Student("Tanu"), Student("Tina"))
+    // can't call Home() (stateful) in preview; show HomeContent sample instead
+    // Note: For preview we can't pass SnapshotStateList easily; this is for illustration.
 }
