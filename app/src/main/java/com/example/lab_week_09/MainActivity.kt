@@ -26,7 +26,12 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.lab_week_09.ui.theme.*
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import java.net.URLDecoder
+import java.net.URLEncoder
 
+// Data model
 data class Student(var name: String)
 
 class MainActivity : ComponentActivity() {
@@ -50,17 +55,23 @@ class MainActivity : ComponentActivity() {
 fun App(navController: NavHostController) {
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
-            Home { navController.navigate("resultContent/?listData=$it") }
+            Home { jsonString ->
+                // Simpan JSON di savedStateHandle (bukan lewat URL)
+                navController.currentBackStackEntry?.savedStateHandle?.set("listData", jsonString)
+                navController.navigate("resultContent")
+            }
         }
-        composable(
-            route = "resultContent/?listData={listData}",
-            arguments = listOf(navArgument("listData") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val listData = backStackEntry.arguments?.getString("listData").orEmpty()
-            ResultContent(listData)
+        composable("resultContent") {
+            // Ambil JSON dari savedStateHandle
+            val json = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<String>("listData")
+                ?: ""
+            ResultContent(listJson = json)
         }
     }
 }
+
 
 @Composable
 fun Home(navigateFromHomeToResult: (String) -> Unit) {
@@ -68,17 +79,23 @@ fun Home(navigateFromHomeToResult: (String) -> Unit) {
     var inputField = remember { mutableStateOf(Student("")) }
 
     HomeContent(
-        listData,
-        inputField.value,
-        { input -> inputField.value = inputField.value.copy(input) },
-        {
+        listData = listData,
+        inputField = inputField.value,
+        onInputValueChange = { input -> inputField.value = inputField.value.copy(name = input) },
+        onButtonClick = {
+            // Prevent adding empty string (Assignment 1)
             if (inputField.value.name.isNotBlank()) {
                 listData.add(inputField.value)
                 inputField.value = Student("")
             }
         },
-        {
-            navigateFromHomeToResult(listData.toList().toString())
+        navigateFromHomeToResult = {
+            // Convert listData to JSON using Moshi and send to ResultContent
+            val moshi = Moshi.Builder().build()
+            val type = Types.newParameterizedType(List::class.java, Student::class.java)
+            val adapter = moshi.adapter<List<Student>>(type)
+            val json = adapter.toJson(listData.toList())
+            navigateFromHomeToResult(json)
         }
     )
 }
@@ -98,14 +115,15 @@ fun HomeContent(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 OnBackgroundTitleText(text = stringResource(id = R.string.enter_item))
+
                 TextField(
                     value = inputField.name,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text
-                    ),
-                    onValueChange = { onInputValueChange(it) }
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    onValueChange = { onInputValueChange(it) },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                Row {
+
+                Row(modifier = Modifier.padding(top = 8.dp)) {
                     PrimaryTextButton(text = stringResource(id = R.string.button_click)) {
                         onButtonClick()
                     }
@@ -115,9 +133,12 @@ fun HomeContent(
                 }
             }
         }
+
         items(listData) { item ->
             Column(
-                modifier = Modifier.padding(vertical = 4.dp).fillMaxSize(),
+                modifier = Modifier
+                    .padding(vertical = 4.dp)
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 OnBackgroundItemText(text = item.name)
@@ -127,12 +148,37 @@ fun HomeContent(
 }
 
 @Composable
-fun ResultContent(listData: String) {
-    Column(
-        modifier = Modifier.padding(vertical = 4.dp).fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        OnBackgroundItemText(text = listData)
+fun ResultContent(listJson: String) {
+    // Parse JSON into List<Student> using Moshi
+    val moshi = Moshi.Builder().build()
+    val type = Types.newParameterizedType(List::class.java, Student::class.java)
+    val adapter = moshi.adapter<List<Student>>(type)
+    val list: List<Student> = try {
+        if (listJson.isBlank()) emptyList() else adapter.fromJson(listJson) ?: emptyList()
+    } catch (e: Exception) {
+        emptyList()
+    }
+
+    // Display parsed list using LazyColumn
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        item {
+            OnBackgroundTitleText(text = "Result (parsed JSON)")
+        }
+        items(list) { student ->
+            Column(
+                modifier = Modifier
+                    .padding(vertical = 6.dp)
+                    .fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                OnBackgroundItemText(text = student.name)
+            }
+        }
+        if (list.isEmpty()) {
+            item {
+                OnBackgroundItemText(text = "No items to display")
+            }
+        }
     }
 }
 
@@ -140,6 +186,6 @@ fun ResultContent(listData: String) {
 @Composable
 fun PreviewApp() {
     LAB_WEEK_09Theme {
-        // preview omitted for NavHost
+        // Preview - shows HomeContent sample. For simplicity preview omitted nav.
     }
 }
